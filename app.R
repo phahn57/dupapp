@@ -1,3 +1,4 @@
+
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
@@ -9,61 +10,42 @@ library(ggpubr)
 library(grid)
 library(gridExtra)
 
-# Define functions... Später ersetzt durch Aufruf auf vorverarbeitete Dateien. Extra Prozess auf Server ?
-klinik <- function(datei) {
-        ## Datei einlesen
-        klinik <- read.csv2(file(datei, encoding = "ISO-8859-1"), header = T, stringsAsFactors = FALSE)
-        ## Unwichtige Spalten entfernen
-        kl <- klinik[, c(4:9, 16, 20, 27, 30, 31, 53:55, 86, 89, 120, 126, 142, 144, 146, 157, 162, 165, 166, 169, 178, 195, 199, 238)]
-        ## EntlDat in Datum ?nder
-        kl$EntlDat <- as.Date(kl$EntlDat, "%d.%m.%Y")
-        kl$AufnDat <- as.Date(kl$AufnDat, "%d.%m.%Y")
-        kl <- kl %>% mutate(yd = paste(quarter(EntlDat, with_year = TRUE))) %>% mutate(year = year(EntlDat)) %>% mutate(md = paste(year(EntlDat) - 2010, month(EntlDat), sep = "")) %>% mutate(md = as.numeric(md), yd = as.numeric(yd)) %>% mutate(mon = month(EntlDat))
-        kl <- kl %>% mutate(mon_auf = month(AufnDat))
-        kl
-}
+## read prefabricated file containing query of pubmed
 
-## Funktionen
-abteil <- function(abtt) {
-        fall %>% filter(abt == abtt) %>% group_by(jahr, form, mon) %>% summarise(drg = sum(effgewicht), faelle = n(), sn = sum(snzeit, na.rm = TRUE), verweil = sum(vwd, na.rm = TRUE)) %>% ungroup()
-}
+        pm_data <- read_csv("abstracts.csv")
 
-ermaech <- function(kvvar){
-        fall %>% filter(kat==kvvar)
-}                                
-## Lesen der Dateien
-f2017 <- klinik("../data/fallexport_2017.csv")
-f2018 <- klinik("../data/fallexport.csv")
-f2016<-klinik("../data/fallexport_2016_final.csv")
-#plan <- read_csv2("../data/plan18.csv")
-## Achtung: PLZ in 2018 sind chr
-# f2017$PLZ <- as.integer(f2017$PLZ)
-fall <- bind_rows(list(f2016,f2017, f2018))
-
-## eliminiere falsche Jahre und externe
-fall <- filter(fall, year %in% c(2016, 2017, 2018))
-br <- unique(fall$mon) ## für x-Achse
-
-## Ändere Namen
-## Achtung händische Eingabe des letzten überschüssigen Quartals !!
-colnames(fall) <- c("id", "sex", "alter", "plz", "ort", "form", "aufnahme", "entlassung", "abt", "kat", "einweiser", "ediag", "adiag", "hdiag", "ops1", "ops2", "op", "narkose", "snzeit", "arzt1", "arzt2", "rgaop", "vwd", "drg", "erloes", "ldrg", "effgewicht", "ehdiag", "wahlleist", "bsnr", "quartjahr", "jahr", "md", "mon", "mon_auf")
-fall <- fall %>% mutate(einw = gsub("\\,.*", "", einweiser)) %>% mutate(form = ifelse(form == "vollstationär", "voll", form)) %>% filter(quartjahr!="2018.4")
+# make bins for publication year
+        pm_data$year_cut <- cut(pm_data$year, c(1960, 1970, 1980, 1990, 2000,2010,2018),labels=c("60-69","70-79","80-89","90-99","00-09","10-18"), include.lowest=TRUE)
 
 
-## Funktionen
+## remove plural words
+        pm_data <-pm_data  %>% mutate(abstract=str_replace_all(abstract,"options","option")) 
+# list of words to remove in token
+        del_word <-  tibble(word=c("dupuytren","NA","patient","disease","treatment","study","result","hand","disease",
+                           "contracture","patients","dupuytren's","clinical","results","report","included","month","treated","found","increased","compared","95","ci","10","20","30","statistically","lt","studies","underwent","diagnosis","12","15","50","reported","de","quot","des","bev","major","dd"))
 
-# plotter_abt <- function(df,xname, yname, ybez) {
-#         x_var <- enquo(xname)
-#         y_var <- enquo(yname)
-#         d_df <- enquo(df)
-#         
-#         ggplot(!!d_df, aes(x = !!x_var, y = !!y_var)) + geom_point() + geom_line(data = stat[stat$jahr == 2018, ], color = "red") + geom_line(data = stat[stat$jahr == 2017, ], color = "blue") + theme_bw() + guides(colour = FALSE, alpha = FALSE, size = FALSE) + ggtitle(ybez, "Vorjahr (blau)") + labs(x = "Monat", y = ybez) + scale_x_continuous(breaks = br) + scale_y_continuous(limits = c(0, NA))
-# }
-# 
-## ortho <- abteil("ORTH") Auswahl über Button
-##stat <- ortho %>% filter(form == "voll")
-##tab_s <- stat_tab()
-##plotter_abt(mon, faelle, "Fälle")
+## unnest title        
+        pm_title <- pm_data %>% 
+                unnest_tokens(word,title) %>% 
+                anti_join(stop_words)
+# unnest abstract        
+        pm_abstract <- pm_data %>% 
+                unnest_tokens(word,abstract) %>% 
+                anti_join(stop_words)
+        
+# remove custom stop_words and remove numbers in abstract
+        pm_title <- pm_title %>% 
+                anti_join(del_word)
+        pm_abstract <- pm_abstract %>% 
+                anti_join(del_word)  
+        pm_abstract <- pm_abstract %>% 
+                filter(!word %in% c(0:9))
+        
+### make DTM, will be replaced by prefabricated DTM use save and load   
+             word_counts <- pm_abstract %>% 
+                count(DOI,word,sort=TRUE) %>% ungroup()
+        abstr_dtm <- word_counts %>% 
+                cast_dtm(DOI,word,n)
 
 
 # Define UI for app that draws a histogram ----
