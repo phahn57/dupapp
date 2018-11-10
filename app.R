@@ -52,58 +52,61 @@ library(gridExtra)
 ui <- dashboardPage(
         
         # App title ----
-        dashboardHeader(title= "Reporting"),
+        dashboardHeader(title= "Pubmed query Dupuytren processed with LDA"),
         dashboardSidebar(
                 sidebarMenu(
-                        menuItem("Reporting", tabName = "report", icon = icon("dashboard")),
-                        menuItem("Zuweiser", tabName="zuweiser", icon=icon("th"))
+                        menuItem("Rationale", tabName = "ratio", icon = icon("dashboard")),
+                        menuItem("Topics", tabName="topic", icon=icon("th")),
+                        menuItem("Papers",tabName="paper", icon=icon("th"))
                 )
         ),
         
         dashboardBody(
                 tabItems(
-                        tabItem(tabName="report",
+                        tabItem(tabName="ratio",
                 fluidRow(
-                        box(plotOutput("pstat")),
-                        box(plotOutput("aop"))),
-                fluidRow(
-                        box(
-                                title="Controls",
-                                selectInput("inVar",
-                                    label = "Abteilung:",
-                                    choices = c("ORTH", "H-CHI", "S-CHI"))
+                        box(title="Why and how",
+                            "The idea behind this program is build on techniques of natural language processing (NLP)",br(),
+                            "A pubmed query: DUpuytren[MeSH] from 1960 up to now reveals 2230 papers.",br(),
+                            "Every document is a mixture of topics. We imagine that each document may contain words from several topics in
+particular proportions. For example, in a two-topic model we could say “Document 1 is 90% topic A and 10% topic B, while Document 2 is 30% topic A and 70% topic B.”
+Every topic is a mixture of words. For example, we could imagine a two-topic model of American news, with one topic for “politics” and one for “entertainment.” The most common words in the politics topic might be “President”, “Congress”, and “government”, while the entertainment topic may be made up of words such as “movies”, “television”, and “actor”. Importantly, words can be shared between topics; a word like “budget” might appear in both equally.
+LDA is a mathematical method for estimating both of these at the same time: finding the mixture of words that is associated with each topic, while also determining the mixture of topics that describes each document.
+[https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation]", br(),
+                            "This program calculates topic models for all papers from the above mentioned query. The topics and the top 10 words
+associated with each topic are displyed in Tab 2 (topics), giving the probability for a word belonging to that topic" , br(),
+                            "In Tab 3 the user can choose a topic number and a range of probability, that a paper belongs to a specific topic and all papers are displayed."
+                        )
                 ))),
                 
-                tabItem(tabName="zuweiser",
+                tabItem(tabName="topic",
+                        fluidRow(
+                        box(plotOutput("zuw"),width=12, height = 600))
+                ))),
+                tabItem(tabName="paper",
                         fluidRow(
                         box(plotOutput("zuw"),width=12, height = 600)        
                         ),
                         fluidRow(
-                                box(title="KV_Ermächtigung",width=6,
-                                        selectInput("kv",
-                                                    label = "Ermächtigung",
-                                                    choices = c("kvouch", "kvbest", "kvhch")),
-                                    box(title="Rangordnung", width=6,
-                                    sliderInput("rg","Rang",min=1,max=70,value=c(1,20),dragRange = FALSE))
-                ))))))
+                                box(title="Topic",width=6,
+                                        numericInput("top",
+                                                    label = "Select topic number",
+                                                    min=1,max=12),
+                                    box(title="Probability", width=6,
+                                    sliderInput("prob","Select probability",min=0,max=1,value=c(0.7,1.0),dragRange = FALSE))
+                )))
+        
+        )
 
 # Define server logic  ----
 server <- function(input, output) {
         
-        selectedAbt <- reactive({
-                abteil(input$inVar) 
+        selectedtopic <- reactive({
+                input$top 
         })
-        
         selectedkv <- reactive(
-                ermaech(input$kv)
+                input$prob
         )
-        
-        output$selected_var <- renderText({ 
-                y <- 4*4
-                xx <- paste("Hallo, dies ist eingegeben",input$inVar,"und die Zahl",y)
-                
-                xx
-        })
         
         output$pstat <- renderPlot({
                 dd <- selectedAbt() %>% filter(form == "voll")  %>% filter(jahr!=2016)
