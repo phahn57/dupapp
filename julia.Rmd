@@ -164,7 +164,6 @@ LDA is a mathematical method for estimating both of these at the same time: find
 
 ```{r}
         word_counts <- pm_abstract %>% 
-        anti_join(stop_words) %>% anti_join(del_word) %>% 
         count(DOI,word,sort=TRUE) %>% ungroup()
 ```
 
