@@ -2,6 +2,7 @@
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
+library(tidytext)
 library(reshape2)
 library(lubridate)
 library(knitr)
@@ -12,7 +13,7 @@ library(gridExtra)
 
 ### Load predefines model(stm) from file
 
-        topic_model <- load("topic_60.RData")
+        load("topic_60.RData")
 ### tidy it
         tidy_stm <- tidy(topic_model)
 ## top_terms for each topic
@@ -26,7 +27,6 @@ library(gridExtra)
 
 # Define UI for app that draws a histogram ----
 ui <- dashboardPage(
-        
         # App title ----
         dashboardHeader(title= "Pubmed query Dupuytren processed with LDA"),
         dashboardSidebar(
@@ -51,14 +51,14 @@ LDA is a mathematical method for estimating both of these at the same time: find
 [https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation]", br(),
                             "This program calculates topic models for all papers from the above mentioned query. The topics and the top 10 words
 associated with each topic are displyed in Tab 2 (topics), giving the probability for a word belonging to that topic" , br(),
-                            "In Tab 3 the user can choose a topic number and a range of probability, that a paper belongs to a specific topic and all papers are displayed."
+                            "In Tab 3 the user can choose a topic number and a range of probability, that a paper belongs to a specific topic and all papers are displayed.",width=12
                         )
-                ))),
+                )),
                 
                 tabItem(tabName="topic",
                         fluidRow(
                         box(plotOutput("topics"),width=12, height = 600)
-                ))),
+                )),
                 
                 tabItem(tabName="paper",
                         fluidRow(
@@ -68,12 +68,14 @@ associated with each topic are displyed in Tab 2 (topics), giving the probabilit
                                 box(title="Topic",width=6,
                                         numericInput("top",
                                                     label = "Select topic number",
-                                                    min=1,max=12),
+                                                    min=1,max=12,value=4),
                                     box(title="Probability", width=6,
                                     sliderInput("prob","Select probability",min=0,max=1,value=c(0.7,1.0),dragRange = FALSE))
-                )))
+                ))
+                ) ## close body
+                ))) ## close page
+                
         
-        )
 
 # Define server logic  ----
 server <- function(input, output) {
