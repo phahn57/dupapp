@@ -89,12 +89,12 @@ topic_model <- stm(abstr_sparse, K = 60,
 ```{r}
         ##save if necessary or load
         # save(topic_model,file="topic_60.RData")
-        tidy_lda <- tidy(topic_model)
+        tidy_stm <- tidy(topic_model)
 ```
 ## top terms
 
 ```{r}
-        top_terms <- tidy_lda %>% 
+        top_terms <- tidy_stm %>% 
         group_by(topic) %>%
         filter(!is.na(term)) %>% 
         top_n(10,beta) %>% 
