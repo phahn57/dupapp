@@ -21,6 +21,9 @@ library(tm)
 library(tidytext)
 library(widyr)
 library(topicmodels)
+library(furrr)
+library(stm)
+
 
 
 ```

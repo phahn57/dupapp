@@ -1,0 +1,81 @@
+---
+title: "julia_stm"
+author: "Peter Hahn"
+date: "11 11 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include = TRUE, message=FALSE, fig.width = 12, fig.height = 8)
+## load libraries
+library(tidyverse)
+library(RISmed)
+library(wordcloud)
+library(stringr)
+library(igraph)
+library(ggraph)
+library(tidygraph)
+library(tm)
+library(tidytext)
+library(widyr)
+library(topicmodels)
+library(furrr)
+library(stm)
+```
+
+## LOad file
+```{r}
+abstr_dtm <- load("doc_term.RData")
+```
+
+### calculate stm
+
+```{r}
+plan(multiprocess)
+
+many_models <- data_frame(K = c(12,16,20,24,28,32)) %>%
+  mutate(topic_model = future_map(K, ~stm(abstr_sparse, K = .,
+                                          verbose = FALSE)))
+```
+
+## evaluate
+
+```{r}
+        heldout <- make.heldout(abstr_sparse)
+
+k_result <- many_models %>%
+  mutate(exclusivity = map(topic_model, exclusivity),
+         semantic_coherence = map(topic_model, semanticCoherence, abstr_sparse),
+         eval_heldout = map(topic_model, eval.heldout, heldout$missing),
+         residual = map(topic_model, checkResiduals, abstr_sparse),
+         bound =  map_dbl(topic_model, function(x) max(x$convergence$bound)),
+         lfact = map_dbl(topic_model, function(x) lfactorial(x$settings$dim$K)),
+         lbound = bound + lfact,
+         iterations = map_dbl(topic_model, function(x) length(x$convergence$bound)))
+
+k_result
+```
+
+# plot
+
+```{r}
+        k_result %>%
+  transmute(K,
+            `Lower bound` = lbound,
+            Residuals = map_dbl(residual, "dispersion"),
+            `Semantic coherence` = map_dbl(semantic_coherence, mean),
+            `Held-out likelihood` = map_dbl(eval_heldout, "expected.heldout")) %>%
+  gather(Metric, Value, -K) %>%
+  ggplot(aes(K, Value, color = Metric)) +
+  geom_line(size = 1.5, alpha = 0.7, show.legend = FALSE) +
+  facet_wrap(~Metric, scales = "free_y") +
+  labs(x = "K (number of topics)",
+       y = NULL,
+       title = "Model diagnostics by number of topics",
+       subtitle = "These diagnostics indicate that a good number of topics would be around 24")
+```
+
