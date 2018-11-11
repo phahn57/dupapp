@@ -79,3 +79,52 @@ k_result
        subtitle = "These diagnostics indicate that a good number of topics would be around 24")
 ```
 
+## final model with k = 24
+
+```{r}
+topic_model <- stm(abstr_sparse, K = 24, 
+                   verbose = FALSE, init.type = "Spectral")
+```
+
+```{r}
+        tidy_lda <- tidy(topic_model)
+```
+## top terms
+
+```{r}
+        top_terms <- tidy_lda %>% 
+        group_by(topic) %>%
+        filter(!is.na(term)) %>% 
+        top_n(10,beta) %>% 
+        ungroup() %>% 
+        arrange(topic,-beta)
+        
+```
+
+### Graphical representation of top terms
+12 topics were bulid for the abstracts. After test of 6,8,10,16,24 topics best results are achieved with 12 topics.
+For each topic the top 10 terms representing the topic are presented.
+```{r include=TRUE}
+        top_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  group_by(topic, term) %>%    
+  arrange(desc(beta)) %>%  
+  ungroup() %>%
+  mutate(term = factor(paste(term, topic, sep = "__"), 
+                       levels = rev(paste(term, topic, sep = "__")))) %>%
+  ggplot(aes(term, beta, fill = as.factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) gsub("__.+$", "", x)) +
+  labs(title = "Top 10 terms in each LDA topic",
+       x = NULL, y = expression(beta)) +
+  facet_wrap(~ topic, ncol = 4, scales = "free")
+
+```
+
+## gamma
+```{r}
+        lda_gamma <- tidy(topic_model,matrix="gamma")
+        top_gamma <- lda_gamma %>% group_by(document) %>% arrange(desc(gamma)) %>% top_n(2,gamma) %>% arrange(desc(document))
+```
+
