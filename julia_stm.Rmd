@@ -107,7 +107,7 @@ topic_model <- stm(abstr_sparse, K = 60,
 12 topics were bulid for the abstracts. After test of 6,8,10,16,24 topics best results are achieved with 12 topics.
 For each topic the top 10 terms representing the topic are presented.
 ```{r include=TRUE}
-        top_terms %>%
+        top_terms %>% filter(topic>15,topic<35)%>%
   mutate(term = reorder(term, beta)) %>%
   group_by(topic, term) %>%    
   arrange(desc(beta)) %>%  
@@ -120,7 +120,7 @@ For each topic the top 10 terms representing the topic are presented.
   scale_x_discrete(labels = function(x) gsub("__.+$", "", x)) +
   labs(title = "Top 10 terms in each LDA topic",
        x = NULL, y = expression(beta)) +
-  facet_wrap(~ topic, ncol = 4, scales = "free")
+  facet_wrap(~ topic, ncol = 6, scales = "free")
 
 ```
 
