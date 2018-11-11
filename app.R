@@ -31,8 +31,8 @@ ui <- dashboardPage(
         dashboardHeader(title= "Pubmed query Dupuytren processed with LDA"),
         dashboardSidebar(
                 sidebarMenu(
-                        menuItem("Rationale", tabName = "ratio", icon = icon("dashboard")),
-                        menuItem("Topics", tabName="topic", icon=icon("th")),
+                        menuItem("Rationale", tabName = "ratio", icon = icon("comment")),
+                        menuItem("Topics", tabName="topic", icon=icon("chart-bar")),
                         menuItem("Papers",tabName="paper", icon=icon("th"))
                 )
         ),
@@ -57,7 +57,7 @@ associated with each topic are displyed in Tab 2 (topics), giving the probabilit
                 
                 tabItem(tabName="topic",
                         fluidRow(
-                        box(plotOutput("topics"),width=12, height = 600)
+                        box(plotOutput("topics"),width=12, height = 1200)
                 )),
                 
                 tabItem(tabName="paper",
@@ -88,7 +88,7 @@ server <- function(input, output) {
         )
         ### output of top items for each topic
         output$topics <- renderPlot({
-                top_terms %>% filter(topic>15,topic<35)%>%
+                top_terms %>% #filter(topic>15,topic<35)%>%
                         mutate(term = reorder(term, beta)) %>%
                         group_by(topic, term) %>%    
                         arrange(desc(beta)) %>%  
@@ -99,11 +99,11 @@ server <- function(input, output) {
                         geom_col(show.legend = FALSE) +
                         coord_flip() +
                         scale_x_discrete(labels = function(x) gsub("__.+$", "", x)) +
-                        labs(title = "Top 10 terms in each LDA topic",
+                        labs(title = "Top 10 terms in each STM topic",
                              x = NULL, y = expression(beta)) +
                         facet_wrap(~ topic, ncol = 6, scales = "free")
                 
-        })
+        },height = 1200)
         
 }
 
