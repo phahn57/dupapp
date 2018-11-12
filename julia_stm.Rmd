@@ -107,7 +107,7 @@ topic_model <- stm(abstr_sparse, K = 60,
 12 topics were bulid for the abstracts. After test of 6,8,10,16,24 topics best results are achieved with 12 topics.
 For each topic the top 10 terms representing the topic are presented.
 ```{r include=TRUE}
-        top_terms %>% filter(topic>15,topic<35)%>%
+        top_terms %>% 
   mutate(term = reorder(term, beta)) %>%
   group_by(topic, term) %>%    
   arrange(desc(beta)) %>%  

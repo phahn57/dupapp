@@ -40,12 +40,12 @@ library(stm)
                                 DOI = fetch@PMID, 
                                 year = fetch@YearPubmed)
         ## ensure abstracts are character fields (not factors)
-        abstracts <- abstracts %>% mutate(abstract = as.character(abstract))
+        abstracts <- abstracts %>% mutate(abstract = as.character(abstract)) %>% filter(abstract!="")
         # make bins for publication year
         abstracts$year_cut <- cut(abstracts$year, c(1960, 1970, 1980, 1990, 2000,2010,2018),labels=c("60-69","70-79","80-89","90-99","00-09","10-18"), include.lowest=TRUE)
 
         ## remove plural words
-       pm_data <-pm_data  %>% mutate(abstract=str_replace_all(abstract,"options","option")) 
+       pm_data <-abstracts  %>% mutate(abstract=str_replace_all(abstract,"options","option")) 
 # list of words to remove in token
         del_word <-  tibble(word=c("dupuytren","NA","patient","disease","treatment","study","result","hand","disease",
                                 "contracture","patients","dupuytren's","clinical","results","report","included","month","treated","found","increased","compared","95","ci","10","20","30","statistically","lt","studies","underwent","diagnosis","12","15","50","reported","de","quot","des","bev","major","dd"))
@@ -55,13 +55,14 @@ library(stm)
 ```{r}
          pm_abstract <- pm_data %>% 
                 unnest_tokens(word,abstract) %>% 
+                filter(!str_detect(word, "[0-9]+")) %>%
                 anti_join(stop_words)  %>% anti_join(del_word)
 ```
 
 ### make sparse matrix and 
 
 ```{r}
-        ```{r}
+
         word_counts <- pm_abstract %>% 
         count(DOI,word,sort=TRUE) %>% ungroup()
 ```
@@ -73,7 +74,6 @@ make document term matrix
 ```
 
 ### Calculate multi topic stm and evaluate
-```{r}
 ### calculate stm
 
 ```{r}
@@ -124,13 +124,13 @@ k_result
 ## make final model after evaluation with k = 60
 
 ```{r}
-topic_model <- stm(abstr_sparse, K = 60, 
+topic_model <- stm(abstr_sparse, K = 35, 
                    verbose = FALSE, init.type = "Spectral")
 ```
 
 ```{r}
         ##save if necessary or load
-        # save(topic_model,file="topic_60.RData")
+        # save(topic_model,file="topic_35.RData")
          tidy_stm <- tidy(topic_model)
 ```
 ```
