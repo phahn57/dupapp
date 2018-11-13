@@ -134,3 +134,10 @@ For each topic the top 10 terms representing the topic are presented.
         lda_gamma <- tidy(topic_model,matrix="gamma",document_names = rownames(abstr_sparse))
         top_gamma <- lda_gamma %>% group_by(document) %>% arrange(desc(gamma)) %>% top_n(2,gamma) %>% arrange(desc(document))
 ```
+
+### join papers and gamma values
+
+```{r}
+yy <- abstracts %>% filter(DOI==10050243)  ## number == document in topic_model
+```
+
