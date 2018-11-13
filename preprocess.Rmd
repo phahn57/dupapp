@@ -64,7 +64,7 @@ library(stm)
 ```{r}
 
         word_counts <- pm_abstract %>% 
-        count(DOI,word,sort=TRUE) %>% ungroup()
+        count(DOI,word,sort=TRUE) %>% ungroup() %>% droplevels()
 ```
 
 make document term matrix
@@ -124,7 +124,7 @@ k_result
 ## make final model after evaluation with k = 60
 
 ```{r}
-topic_model <- stm(abstr_sparse, K = 35, 
+topic_model <- stm(abstr_sparse, K = 30, 
                    verbose = FALSE, init.type = "Spectral")
 ```
 

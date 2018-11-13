@@ -4,6 +4,8 @@ author: "Peter Hahn"
 date: "11 11 2018"
 output: html_document
 ---
+#Links
+[https://github.com/dondealban/learning-stm#workflow]
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -16,7 +18,7 @@ library(tidyverse)
 #library(RISmed)
 library(wordcloud)
 library(stringr)
-#library(igraph)
+library(igraph)
 #library(ggraph)
 #library(tidygraph)
 library(tm)
@@ -82,8 +84,11 @@ k_result
 ## final model with k = 24
 
 ```{r}
-topic_model <- stm(abstr_sparse, K = 60, 
+topic_model <- stm(abstr_sparse, K = 30, 
                    verbose = FALSE, init.type = "Spectral")
+
+## alternative
+
 ```
 
 ```{r}
@@ -126,6 +131,6 @@ For each topic the top 10 terms representing the topic are presented.
 
 ## gamma
 ```{r}
-        lda_gamma <- tidy(topic_model,matrix="gamma")
+        lda_gamma <- tidy(topic_model,matrix="gamma",document_names = rownames(abstr_sparse))
         top_gamma <- lda_gamma %>% group_by(document) %>% arrange(desc(gamma)) %>% top_n(2,gamma) %>% arrange(desc(document))
 ```
