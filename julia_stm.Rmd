@@ -131,8 +131,17 @@ For each topic the top 10 terms representing the topic are presented.
 
 ## gamma
 ```{r}
-        lda_gamma <- tidy(topic_model,matrix="gamma",document_names = rownames(abstr_sparse))
+        lda_gamma <- tidy(topic_model,matrix="gamma",document_names = abstr_sparse[])
+## join with abstracts   
+
+        joined <- left_join(gamma,abstracts,by=c("document"="DOI"))
+
         top_gamma <- lda_gamma %>% group_by(document) %>% arrange(desc(gamma)) %>% top_n(2,gamma) %>% arrange(desc(document))
+        
+# plot topic by year
+        joined %>% group_by(year,topic) %>% count() %>% 
+                ggplot(aes(year,n))+geom_point()+facet_wrap(~topic)
+        
 ```
 
 ### join papers and gamma values
