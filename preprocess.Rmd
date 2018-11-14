@@ -121,10 +121,10 @@ k_result
        subtitle = "These diagnostics indicate that a good number of topics would be around 60")
 ```
 
-## make final model after evaluation with k = 60
+## make final model after evaluation with k = 40
 
 ```{r}
-topic_model <- stm(abstr_sparse, K = 35, 
+topic_model <- stm(abstr_sparse, K = 40, 
                    verbose = FALSE, init.type = "Spectral")
 ```
 
