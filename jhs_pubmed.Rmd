@@ -1,0 +1,64 @@
+---
+title: "jhs-pubmed"
+author: "Peter Hahn"
+date: "15 11 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## routine for loading new query use saved * csv instead 
+```{r}
+        res1 <- EUtilsSummary("Dupuytren Contracture[Mesh]" , 
+                      type = "esearch", 
+                      db = "pubmed",
+                      datetype = "pdat",
+                      retmax = 15000,
+                      mindate = 1960, 
+                      maxdate = 2018)
+
+        fetch <- EUtilsGet(res1, type = "efetch", db = "pubmed")
+
+        abstracts <- data.frame(title = fetch@ArticleTitle,
+                                abstract = fetch@AbstractText, 
+                                journal = fetch@Title,
+                                DOI = fetch@PMID, 
+                                year = fetch@YearPubmed)
+        ## ensure abstracts are character fields (not factors)
+        abstracts <- abstracts %>% mutate(abstract = as.character(abstract)) %>% filter(abstract!="")
+        # make bins for publication year
+        abstracts$year_cut <- cut(abstracts$year, c(1960, 1970, 1980, 1990, 2000,2010,2018),labels=c("60-69","70-79","80-89","90-99","00-09","10-18"), include.lowest=TRUE)
+
+        
+```
+
+```{r}
+         pm_abstract <- abstracts  %>% 
+                unnest_tokens(word,abstract) %>% 
+                filter(!str_detect(word, "[0-9]+")) %>%
+                anti_join(stop_words) 
+```
+
+### make sparse matrix and 
+
+```{r}
+
+        word_counts <- pm_abstract %>% 
+        count(DOI,word,sort=TRUE) %>% ungroup() %>% droplevels()
+```
+
+make document term matrix
+```{r}
+        abstr_sparse <- word_counts %>% 
+                cast_sparse(DOI,word,n)
+```
+
+## prepare mesh
+```{r}
+        MedList = mapply(cbind, "ID"=ArticleId(fetch),Mesh(fetch),SIMPLIFY = FALSE)
+        mesh_melt <-melt(MedList,id="ID")
+        mesh_melt <- mesh_melt[,3:5]
+        mesh_melt <- mesh_melt %>% filter(variable=="Heading")
+```
+
