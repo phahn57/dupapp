@@ -24,7 +24,9 @@ library(stm)
 
 ## routine for loading new query use saved * csv instead 
 ```{r}
-        res1 <- EUtilsSummary("Dupuytren Contracture[Mesh]" , 
+
+## EUtilsSummary("Dupuytren Contracture[Mesh]"
+        res1 <- EUtilsSummary("The Journal of Hand Surgery[Journal]" , 
                       type = "esearch", 
                       db = "pubmed",
                       datetype = "pdat",
@@ -36,7 +38,8 @@ library(stm)
                                 abstract = fetch@AbstractText, 
                                 journal = fetch@Title,
                                 DOI = fetch@PMID, 
-                                year = fetch@YearPubmed)
+                                year = fetch@YearPubmed,
+                                mesh=fetch@Mesh)
         ## ensure abstracts are character fields (not factors)
         abstracts <- abstracts %>% mutate(abstract = as.character(abstract)) %>% filter(abstract!="")
         # make bins for publication year
