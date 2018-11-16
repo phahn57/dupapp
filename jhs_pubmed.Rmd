@@ -5,8 +5,19 @@ date: "15 11 2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include = TRUE, message=FALSE, fig.width = 12, fig.height = 8)
+## load libraries
+library(tidyverse)
+library(RISmed)
+library(wordcloud)
+library(stringr)
+library(tm)
+library(tidytext)
+library(widyr)
+library(topicmodels)
+library(furrr)
+library(stm)
 ```
 ## routine for loading new query use saved * csv instead 
 ```{r}
