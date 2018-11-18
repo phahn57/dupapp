@@ -84,7 +84,7 @@ k_result
 ## final model with k = 24
 
 ```{r}
-topic_model <- stm(abstr_sparse, K = 60, 
+topic_model <- stm(abstr_sparse, K = 30, 
                    verbose = FALSE, init.type = "Spectral")
 
 ## alternative
