@@ -18,6 +18,7 @@ library(widyr)
 library(topicmodels)
 library(furrr)
 library(stm)
+library(reshape2)
 ```
 ## routine for loading new query use saved * csv instead 
 ```{r}
@@ -65,11 +66,107 @@ make document term matrix
                 cast_sparse(DOI,word,n)
 ```
 
+### with lda
+make document term matrix
+```{r}
+        abstr_dtm <- word_counts %>% 
+        cast_dtm(DOI,word,n)
+```
+
+
+
+  
+```{r}
+        abstr_lda <- LDA(abstr_dtm,k=70,control=list(seed=1234))
+```
+
+```{r}
+        tidy_lda <- tidy(abstr_lda)
+```
+
+
+
+
+
 ## prepare mesh
 ```{r}
         MedList = mapply(cbind, "ID"=ArticleId(fetch),Mesh(fetch),SIMPLIFY = FALSE)
+        m_list <-Mesh(fetch) 
+        m_list_db <- bind_rows(mesh_head)
+
         mesh_melt <-melt(MedList,id="ID")
         mesh_melt <- mesh_melt[,3:5]
         mesh_melt <- mesh_melt %>% filter(variable=="Heading")
+                ##from Jenny Bryan purrr tutorial
+                #mesh_head <- map(MedList,2)
+                ## inspect
+                #listviewer::jsonedit(mesh_head)
+                
+        
+```
+```{r}
+        tidy_lda <- tidy(abstr_lda)
+```
+## top terms
+
+```{r}
+        top_terms <- tidy_lda %>% 
+        group_by(topic) %>%
+        filter(!is.na(term)) %>% 
+        top_n(8,beta) %>% 
+        ungroup() %>% 
+        arrange(topic,-beta)
+        
+```
+
+### Graphical representation of top terms
+
+```{r include=TRUE}
+        top_terms %>%
+  mutate(term = reorder(term, beta)) %>% filter(topic<=30) %>% 
+  group_by(topic, term) %>%    
+  arrange(desc(beta)) %>%  
+  ungroup() %>%
+  mutate(term = factor(paste(term, topic, sep = "__"), 
+                       levels = rev(paste(term, topic, sep = "__")))) %>%
+  ggplot(aes(term, beta, fill = as.factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) gsub("__.+$", "", x)) +
+  labs(title = "Top 8 terms in each LDA topic",
+       x = NULL, y = expression(beta)) +
+  facet_wrap(~ topic, ncol = 4, scales = "free")
+
+```
+
+
+# Vice versa representation
+We just explored which words are associated with which topics. Next, let’s examine which topics are associated with which description fields (i.e., documents). We will look at a different probability for this, γ, the probability that each document belongs in each topic.
+
+```{r}
+lda_gamma <- tidy(abstr_lda,matrix="gamma")
+```
+
+## How are the probabilities distributed? 
+First notice that the y-axis is plotted on a log scale; otherwise it is difficult to make out any detail in the plot. Next, notice that γ
+  runs from 0 to 1; remember that this is the probability that a given document belongs in a given topic. There are many values near zero, which means there are many documents that do not belong in each topic. Also, there are many values near γ=1
+ ; these are the documents that do belong in those topics. This distribution shows that documents are being well discriminated as belonging to a topic or not. 
+
+```{r}
+        ggplot(lda_gamma, aes(gamma)) +
+  geom_histogram() +
+  scale_y_log10() +
+  labs(title = "Distribution of probabilities for all topics",
+       y = "Number of documents", x = expression(gamma))
+```
+
+We can also look at how the probabilities are distributed within each topic.
+```{r}
+        ggplot(lda_gamma, aes(gamma, fill = as.factor(topic))) +
+  geom_histogram(show.legend = FALSE) +
+  facet_wrap(~ topic, ncol = 4) +
+  scale_y_log10() +
+  labs(title = "Distribution of probability for each topic",
+       y = "Number of documents", x = expression(gamma))
 ```
 
