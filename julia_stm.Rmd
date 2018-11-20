@@ -24,6 +24,7 @@ library(tidytext)
 library(topicmodels)
 library(furrr)
 library(stm)
+library(reshape2)
 ```
 # Loading data alternatively laod prepared files
 For this analysis a pubmed query was done with search-term: "Dupuytren Contracture[Mesh]". That reveals 2286 documents. 
@@ -116,7 +117,7 @@ FindTopicsNumber_plot(tunes)
 
 
 
-## final model with k = 24
+## final model with k = 50
 
 ```{r}
 topic_model <- stm(abstr_sparse, K = 30, 
@@ -206,11 +207,10 @@ We can also look at how the probabilities are distributed within each topic.
 ## prepare mesh
 ```{r}
         MedList = mapply(cbind, "ID"=ArticleId(fetch),Mesh(fetch),SIMPLIFY = FALSE)
-        m_list <-Mesh(fetch) 
-        m_list_db <- bind_rows(mesh_head)
         mesh_melt <-melt(MedList,id="ID")
-        mesh_melt <- mesh_melt[,3:5]
         mesh_melt <- mesh_melt %>% filter(variable=="Heading")
+        mesh_melt <- mesh_melt[,c(1,3)]
+        colnames(mesh_melt) <- c("document","mesh")
                 ##from Jenny Bryan purrr tutorial
                 #mesh_head <- map(MedList,2)
                 ## inspect
@@ -218,25 +218,33 @@ We can also look at how the probabilities are distributed within each topic.
                 
         
 ```
-
-## gamma
+## Take a look at mesh
 ```{r}
-        lda_gamma <- tidy(topic_model,matrix="gamma",document_names = abstr_sparse[])
-## join with abstracts   
-
-        joined <- left_join(gamma,abstracts,by=c("document"="DOI"))
-
-        top_gamma <- lda_gamma %>% group_by(document) %>% arrange(desc(gamma)) %>% top_n(2,gamma) %>% arrange(desc(document))
-        
-# plot topic by year
-        joined %>% group_by(year,topic) %>% count() %>% 
-                ggplot(aes(year,n))+geom_point()+facet_wrap(~topic)
-        
+        mesh_melt %>% group_by(mesh) %>% count() %>% arrange(-n)
 ```
 
-### join papers and gamma values
+
+
+### join lda_gamma and mesh_melt
 
 ```{r}
-yy <- abstracts %>% filter(DOI==10050243)  ## number == document in topic_model
+gamma_mesh <- left_join(lda_gamma,mesh_melt) %>% filter(mesh!="Dupuytren Contracture")
+
+ top_gm <- gamma_mesh %>% 
+        group_by(topic,mesh) %>% count() %>% ungroup() %>% group_by(topic) %>% 
+         top_n(10,n) %>% ungroup() %>% arrange(topic,-n)
+
+```
+The top mesh terms are not specific. How many mesh terms are in each document ?
+
+```{r}
+        numb <- mesh_melt %>% group_by(document) %>% count()
+        hist(numb$n)
+```
+
+### which mesh-terms are specific for each document as there are much unspecific terms
+calculate TF-IDF for melt_mesh
+```{r}
+        
 ```
 
