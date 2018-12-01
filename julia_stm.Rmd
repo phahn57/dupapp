@@ -43,7 +43,7 @@ From the query this fields were extracted: title, abstract, journal, DOI, year
                mutate(abstract=str_replace_all(abstract,"\\."," "))
 # list of words to remove in token
         del_word <-  tibble(word=c("dupuytren","NA","patient","disease","treatment","study","result","hand","disease",
-                                "contracture","patients","dupuytren's","clinical","results","report","included","month","treated","found","increased","compared","ci","statistically","lt","studies","underwent","diagnosis","reported","de","quot","des","bev","major","dd","background","purpose","objective","iii","ii"))
+                               "contracture","patients","dupuytren's","clinical","results","report","included","month","treated","found","increased","compared","ci","statistically","lt","studies","underwent","diagnosis","reported","de","quot","des","bev","major","dd","background","purpose","objective","iii","ii"))
         
 
 ```
@@ -82,7 +82,7 @@ unnest tokens, remove stop words and remove frequently common words:
 ## Inspect frequent words
 
 ```{r}
-        freq_words <- word_counts %>% count(word)
+        freq_words <- word_counts %>% count(word) %>% arrange(desc(nn))
 ```
 
 
@@ -151,7 +151,7 @@ topic_model <- stm(abstr_sparse, K = 30,
 ```
 
 ### Graphical representation of top terms
-12 topics were bulid for the abstracts. After test of 6,8,10,16,24 topics best results are achieved with 12 topics.
+
 For each topic the top 10 terms representing the topic are presented.
 ```{r include=TRUE}
         top_terms %>% 
@@ -195,7 +195,7 @@ First notice that the y-axis is plotted on a log scale; otherwise it is difficul
 
 We can also look at how the probabilities are distributed within each topic.
 ```{r}
-        ggplot(lda_gamma, aes(gamma, fill = as.factor(topic))) +
+        ggplot(lda_gamma_50, aes(gamma, fill = as.factor(topic))) +
   geom_histogram(show.legend = FALSE) +
   facet_wrap(~ topic, ncol = 4) +
   scale_y_log10() +
@@ -204,60 +204,22 @@ We can also look at how the probabilities are distributed within each topic.
 ```
 
 
-
-
-
-## prepare mesh
-Extract mesh from pubmed data. Bind with article ID. Filter for variable Heading. 
-## bind tf_idf
-Because Mesh is hierarchical structured most documents have common terms as Dupyutren Contracture, Human, surgery, male, pathology etc. Therefore use of term frequency is not useful. Better is TF-IDF 
+Extract gamma , arrange by topic and gamma and extract top 10 gamma for each topic 
 
 ```{r}
-        MedList = mapply(cbind, "ID"=ArticleId(fetch),Mesh(fetch),SIMPLIFY = FALSE)
-        mesh_melt <-melt(MedList,id="ID")
-        mesh_melt <- mesh_melt %>% filter(variable=="Heading")
-        mesh_melt <- mesh_melt[,c(1,3)]
-        colnames(mesh_melt) <- c("document","mesh")
-        mesh_melt <- mesh_melt %>% mutate(n=1)       
-        mesh_tfidf <- mesh_melt %>% bind_tf_idf(mesh,document,n)        
-        
+lda_gamma_topic <- tidy(abstr_lda,matrix="gamma") %>% arrange(topic,desc(gamma)) %>% group_by(topic) %>% top_n(20,gamma)
+lda_gamma_topic$document <- as.numeric(lda_gamma_topic$document)
 ```
-## Take a look at mesh
+
+## join with pm_data to reveal title etc.
+
 ```{r}
-        mesh_melt %>% group_by(mesh) %>% count() %>% arrange(-n)
-```
-### Take a look at mesh_tfidif
-```{r}
-        top_tfidf <- mesh_tfidf %>% arrange(document,desc(tf_idf)) %>% group_by(document) %>% top_n(5,tf_idf)
-        #tidy(abstr_lda,matrix="gamma") %>% arrange(document,desc(gamma)) %>% group_by(document) %>% top_n(5,gamma)
+ topic_joined <- left_join(lda_gamma_topic,pm_data, by=c("document"="DOI"))
+
 ```
 
 
 
-### join lda_gamma and mesh_melt
 
-```{r}
-gamma_mesh <- inner_join(lda_gamma,top_tfidf) ##%>% filter(mesh!="Dupuytren Contracture")
 
-        gamma_mesh %>% group_by(mesh,topic) %>% count() %>% arrange(desc(topic),desc(nn)) %>% 
-                group_by(topic) %>%  top_n(10,nn) %>% ungroup() %>% filter(topic<51) %>% 
-                mutate(mesh=factor(mesh, levels=rev(unique(mesh)))) %>% 
-                ggplot(aes(mesh,nn))+ geom_col(show.legend = FALSE)+
-                facet_wrap(~topic, ncol=4,scales="free")+ 
-                coord_flip()
-        
-
-```
-The top mesh terms are not specific. How many mesh terms are in each document ?
-
-```{r}
-        numb <- mesh_melt %>% group_by(document) %>% count()
-        hist(numb$n)
-```
-
-### which mesh-terms are specific for each document as there are much unspecific terms
-calculate TF-IDF for melt_mesh
-```{r}
-        
-```
 

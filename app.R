@@ -13,7 +13,8 @@ library(gridExtra)
 
 ### Load predefines model(stm) from file
 
-        load("topic_60.RData")
+        load("dup_lda_50.RData")
+        topic_model <- abstr_lda
 ### tidy it
         tidy_stm <- tidy(topic_model)
 ## top_terms for each topic
