@@ -13,18 +13,34 @@ library(gridExtra)
 
 ### Load predefines model(stm) from file
 
-        load("dup_lda_50.RData")
-        topic_model <- abstr_lda
+        load("dup_lda_48.RData")  ### results in abstract_lda
+        abstracts <- read.csv("abstracts.csv")
+        first_author <- read.csv("first_author.csv")
 ### tidy it
-        tidy_stm <- tidy(topic_model)
+        tidy_lda <- tidy(abstr_lda)
 ## top_terms for each topic
    
-        top_terms <- tidy_stm %>% 
+        top_terms <- tidy_lda %>% 
                 group_by(topic) %>%
                 filter(!is.na(term)) %>% 
                 top_n(10,beta) %>% 
                 ungroup() %>% 
                 arrange(topic,-beta)
+        
+## calculate gamma and related papers
+        #Extract gamma , arrange by topic and gamma and extract top 10 gamma for each topic 
+        
+       
+        lda_gamma_topic <- tidy(abstr_lda,matrix="gamma") %>% arrange(topic,desc(gamma)) %>% group_by(topic) %>% top_n(50,gamma)
+        lda_gamma_topic$document <- as.integer(lda_gamma_topic$document)  # change for joining
+      
+        ## join with pm_data to reveal title etc.
+        
+        topic_joined <- left_join(lda_gamma_topic,abstracts, by=c("document"="DOI")) %>% select(-abstract)
+        topic_joined <- left_join(topic_joined,first_author, by=c("document"="L1"))
+        topic_joined <- topic_joined %>% unite("Name",LastName,value,sep=" ") %>% select(document,topic,gamma, title, journal, year,Name)
+        topic_joined$year <- as.integer(topic_joined$year)
+        
 
 # Define UI for app that draws a histogram ----
 ui <- dashboardPage(
@@ -33,8 +49,7 @@ ui <- dashboardPage(
         dashboardSidebar(
                 sidebarMenu(
                         menuItem("Rationale", tabName = "ratio", icon = icon("comment")),
-                        menuItem("Topics", tabName="topic", icon=icon("chart-bar")),
-                        menuItem("Papers",tabName="paper", icon=icon("th"))
+                        menuItem("Topics", tabName="topic", icon=icon("chart-bar"))
                 )
         ),
         
@@ -44,7 +59,7 @@ ui <- dashboardPage(
                 fluidRow(
                         box(title="Why and how",
                             "The idea behind this program is build on techniques of natural language processing (NLP)",br(),
-                            "A pubmed query: DUpuytren[MeSH] from 1960 up to now reveals 2230 papers.",br(),
+                            "A pubmed query: DUpuytren[MeSH] from 1950 up to now reveals 2519 papers, 1268 of them have an abstract.",br(),
                             "Every document is a mixture of topics. We imagine that each document may contain words from several topics in
 particular proportions. For example, in a two-topic model we could say “Document 1 is 90% topic A and 10% topic B, while Document 2 is 30% topic A and 70% topic B.”
 Every topic is a mixture of words. For example, we could imagine a two-topic model of American news, with one topic for “politics” and one for “entertainment.” The most common words in the politics topic might be “President”, “Congress”, and “government”, while the entertainment topic may be made up of words such as “movies”, “television”, and “actor”. Importantly, words can be shared between topics; a word like “budget” might appear in both equally.
@@ -58,21 +73,17 @@ associated with each topic are displyed in Tab 2 (topics), giving the probabilit
                 
                 tabItem(tabName="topic",
                         fluidRow(
-                        box(plotOutput("topics"),width=12, height = 1200)
-                )),
-                
-                tabItem(tabName="paper",
-                        fluidRow(
-                        #box(plotOutput("zuw"),width=12, height = 600)        
-                        ),
-                        fluidRow(
-                                box(title="Topic",width=6,
-                                        numericInput("top",
-                                                    label = "Select topic number",
-                                                    min=1,max=12,value=4),
-                                    box(title="Probability", width=6,
-                                    sliderInput("prob","Select probability",min=0,max=1,value=c(0.7,1.0),dragRange = FALSE))
-                ))
+                                column(width=8,
+                                        box(plotOutput("topics"),width=NULL, height = 1000)
+                ),
+                                column(width=4,
+                                       box(title="Topic",width=NULL,
+                                           numericInput("top",
+                                                        label = "Select topic number",
+                                                        min=1,max=48,value=1)),
+                                       box(title="relevant Papers",tableOutput("rel_pap"),width=NULL)
+                                       )
+                )
                 ) ## close body
                 ))) ## close page
                 
@@ -84,12 +95,14 @@ server <- function(input, output) {
         selectedtopic <- reactive({
                 input$top 
         })
-        selectedkv <- reactive(
-                input$prob
-        )
+        
+        rel_tab <- reactive({
+                x <- topic_joined %>% filter(topic==selectedtopic())
+        })
+        
         ### output of top items for each topic
         output$topics <- renderPlot({
-                top_terms %>% #filter(topic>15,topic<35)%>%
+                top_terms %>%
                         mutate(term = reorder(term, beta)) %>%
                         group_by(topic, term) %>%    
                         arrange(desc(beta)) %>%  
@@ -104,7 +117,13 @@ server <- function(input, output) {
                              x = NULL, y = expression(beta)) +
                         facet_wrap(~ topic, ncol = 6, scales = "free")
                 
-        },height = 1200)
+        },height = 1000)
+        
+        ### output of the table with relevant papers for selected topic
+        output$rel_pap <- renderTable({
+                rel_tab()
+        })
+        
         
 }
 
