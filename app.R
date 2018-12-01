@@ -45,7 +45,7 @@ library(gridExtra)
 # Define UI for app that draws a histogram ----
 ui <- dashboardPage(
         # App title ----
-        dashboardHeader(title= "Pubmed query Dupuytren processed with LDA"),
+        dashboardHeader(title= "Dupuytren NLP"),
         dashboardSidebar(
                 sidebarMenu(
                         menuItem("Rationale", tabName = "ratio", icon = icon("comment")),
@@ -57,17 +57,24 @@ ui <- dashboardPage(
                 tabItems(
                         tabItem(tabName="ratio",
                 fluidRow(
-                        box(title="Why and how",
-                            "The idea behind this program is build on techniques of natural language processing (NLP)",br(),
-                            "A pubmed query: DUpuytren[MeSH] from 1950 up to now reveals 2519 papers, 1268 of them have an abstract.",br(),
+                        box(title= "Why and how",
+                            "Locating of relevant literature can be time consuming. Most searches are based on Pubmed. How can we refine a Pubmed search ?",
+                            "One solution may be the use of natural language processing (NLP) and combine it with topic modelling.",br(),
+                            "NLP enables computers to handle and analyse large amounts of natural language. A topic model is a special statistical representation of topics within a collection of documents.",
                             "Every document is a mixture of topics. We imagine that each document may contain words from several topics in
-particular proportions. For example, in a two-topic model we could say “Document 1 is 90% topic A and 10% topic B, while Document 2 is 30% topic A and 70% topic B.”
-Every topic is a mixture of words. For example, we could imagine a two-topic model of American news, with one topic for “politics” and one for “entertainment.” The most common words in the politics topic might be “President”, “Congress”, and “government”, while the entertainment topic may be made up of words such as “movies”, “television”, and “actor”. Importantly, words can be shared between topics; a word like “budget” might appear in both equally.
-LDA is a mathematical method for estimating both of these at the same time: finding the mixture of words that is associated with each topic, while also determining the mixture of topics that describes each document.
-[https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation]", br(),
-                            "This program calculates topic models for all papers from the above mentioned query. The topics and the top 10 words
-associated with each topic are displyed in Tab 2 (topics), giving the probability for a word belonging to that topic" , br(),
-                            "In Tab 3 the user can choose a topic number and a range of probability, that a paper belongs to a specific topic and all papers are displayed.",width=12
+                            particular proportions. For example, in a two-topic model we could say “Document 1 is 90% topic A and 10% topic B, while Document 2 is 30% topic A and 70% topic B.”
+                            Every topic is a mixture of words. For example, we could imagine a two-topic model of American news, with one topic for “politics” and one for “entertainment.”
+                            The most common words in the politics topic might be “President”, “Congress”, and “government”, while the entertainment topic may be made up of words such as “movies”, “television”, and “actor”.
+                            Words can be shared between topics; a word like “budget” might appear in both.
+                            LDA is a mathematical method for estimating both at the same time: finding the mixture of words that is associated with each topic, while also determining the mixture of topics that describes each document.
+                            [https://en.wikipedia.org/wiki/Latent_Dirichlet_allocation]", br(),br(),
+                            "A pubmed query: Dupuytren[MeSH] from 1950 up to now reveals 2519 publications, 1268 of them have an abstract.",br(), 
+                            "The abstracts are tokenized (separated into words), then stop words, which doesn't contain specific information as (and, I, we, find etc.) are filtered. Then within each documents the occurrence of words is counted.
+                            I filter words occurring frequently in each document too,  e.g. Dupuytren, Background, study, clinical, result etc.", br(), 
+                        "Then topic models for all publications from the above mentioned query are calculated. The topics and the top 10 words
+                            associated with each topic are displayed in Tab 2 (topics), giving the probability for a word belonging to that topic, beta-value. Be patient calculating and displaying the topics take some time. " , br(),
+                            "On the right side, you can choose the topic you are interested in. The top 50 publications associated with that topic are displayed. They are sorted by gamma-value from 1.0 to 0.-- 1.0 shows maximum association between
+                            topic and publications.",width=12
                         )
                 )),
                 
