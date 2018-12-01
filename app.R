@@ -10,8 +10,9 @@ library(plotly)
 library(ggpubr)
 library(grid)
 library(gridExtra)
+library(topicmodels)
 
-### Load predefines model(stm) from file
+### Load predefines model(lda) from file
 
         load("dup_lda_48.RData")  ### results in abstract_lda
         abstracts <- read.csv("abstracts.csv")
