@@ -19,7 +19,7 @@ library(tidytext)
 library(widyr)
 library(topicmodels)
 library(furrr)
-library(stm)
+library(lda)
 ```
 
 ## routine for loading new query use saved * csv instead 
@@ -29,8 +29,8 @@ library(stm)
                       db = "pubmed",
                       datetype = "pdat",
                       retmax = 12000,
-                      mindate = 1960, 
-                      maxdate = 2018)
+                      mindate = 1950, 
+                      maxdate = 2019)
 
         fetch <- EUtilsGet(res1, type = "efetch", db = "pubmed")
 
@@ -42,14 +42,20 @@ library(stm)
         ## ensure abstracts are character fields (not factors)
         abstracts <- abstracts %>% mutate(abstract = as.character(abstract)) %>% filter(abstract!="")
         # make bins for publication year
-        abstracts$year_cut <- cut(abstracts$year, c(1960, 1970, 1980, 1990, 2000,2010,2018),labels=c("60-69","70-79","80-89","90-99","00-09","10-18"), include.lowest=TRUE)
+        #abstracts$year_cut <- cut(abstracts$year, c(1960, 1970, 1980, 1990, 2000,2010,2018),labels=c("60-69","70-79","80-89","90-99","00-09","10-18"), include.lowest=TRUE)
 
         ## remove plural words
        pm_data <-abstracts  %>% mutate(abstract=str_replace_all(abstract,"options","option")) 
 # list of words to remove in token
         del_word <-  tibble(word=c("dupuytren","NA","patient","disease","treatment","study","result","hand","disease",
                                 "contracture","patients","dupuytren's","clinical","results","report","included","month","treated","found","increased","compared","95","ci","10","20","30","statistically","lt","studies","underwent","diagnosis","12","15","50","reported","de","quot","des","bev","major","dd"))
-        
+ 
+        ### build data frame with first authors
+        MedList = mapply(cbind, "ID"=ArticleId(fetch),Author(fetch),SIMPLIFY = FALSE)
+        first_author <-melt(MedList,id.vars=c("ID","LastName","order")) %>% filter(order==1) %>% filter(variable=="Initials") 
+        first_author$L1 <- as.integer(first_author$L1)
+        first_author <- first_author %>% select(LastName,value,L1)
+        write.csv(first_author,"first_author.csv")
 ```
 
 ```{r}
@@ -67,72 +73,52 @@ library(stm)
         count(DOI,word,sort=TRUE) %>% ungroup() %>% droplevels()
 ```
 
-make document term matrix
+
+
+## build document term matrix for further analysis two ways
 ```{r}
-        abstr_sparse <- word_counts %>% 
-                cast_sparse(DOI,word,n)
+        abstr_dtm <- word_counts %>% 
+        cast_dtm(DOI,word,n)
+
+        # abstr_sparse <- word_counts %>% 
+        #         cast_sparse(DOI,word,n)
 ```
 
-### Calculate multi topic stm and evaluate
-### calculate stm
-
+### use lda_tuning
 ```{r}
-plan(multiprocess)
 
-many_models <- data_frame(K = c(20,30,40,50,60,70)) %>%
-  mutate(topic_model = future_map(K, ~stm(abstr_sparse, K = .,
-                                          verbose = FALSE)))
+                system.time({
+  tunes <- FindTopicsNumber(
+    dtm = abstr_dtm,
+    topics = seq(from = 20, to = 100, by = 10),
+    metrics = c("Griffiths2004", "CaoJuan2009", "Arun2010"),
+    method = "Gibbs",
+    control = list(seed = 12345),
+    mc.cores = 4L,
+    verbose = TRUE
+  )
+})
+
 ```
 
-## evaluate
-
 ```{r}
-        heldout <- make.heldout(abstr_sparse)
-
-k_result <- many_models %>%
-  mutate(exclusivity = map(topic_model, exclusivity),
-         semantic_coherence = map(topic_model, semanticCoherence, abstr_sparse),
-         eval_heldout = map(topic_model, eval.heldout, heldout$missing),
-         residual = map(topic_model, checkResiduals, abstr_sparse),
-         bound =  map_dbl(topic_model, function(x) max(x$convergence$bound)),
-         lfact = map_dbl(topic_model, function(x) lfactorial(x$settings$dim$K)),
-         lbound = bound + lfact,
-         iterations = map_dbl(topic_model, function(x) length(x$convergence$bound)))
-
-k_result
+FindTopicsNumber_plot(tunes)
 ```
 
-# plot
+
+
+## final model with k = 48 , fits better in rows on screen :-)
 
 ```{r}
-        k_result %>%
-  transmute(K,
-            `Lower bound` = lbound,
-            Residuals = map_dbl(residual, "dispersion"),
-            `Semantic coherence` = map_dbl(semantic_coherence, mean),
-            `Held-out likelihood` = map_dbl(eval_heldout, "expected.heldout")) %>%
-  gather(Metric, Value, -K) %>%
-  ggplot(aes(K, Value, color = Metric)) +
-  geom_line(size = 1.5, alpha = 0.7, show.legend = FALSE) +
-  facet_wrap(~Metric, scales = "free_y") +
-  labs(x = "K (number of topics)",
-       y = NULL,
-       title = "Model diagnostics by number of topics",
-       subtitle = "These diagnostics indicate that a good number of topics would be around 60")
-```
-
-## make final model after evaluation with k = 60
-
-```{r}
-topic_model <- stm(abstr_sparse, K = 30, 
+topic_model <- stm(abstr_sparse, K = 48, 
                    verbose = FALSE, init.type = "Spectral")
-```
 
-```{r}
-        ##save if necessary or load
-        # save(topic_model,file="topic_35.RData")
-         tidy_stm <- tidy(topic_model)
+
 ```
+ 
+## alternative with LD
+```{r}
+        abstr_lda <- LDA(abstr_dtm,k=48,control=list(seed=1234))
 ```
 
 
