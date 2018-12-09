@@ -1,0 +1,13 @@
+name: dupapp
+title: dupapp
+username:
+account: kphahn
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 610390
+bundleId: 1750909
+url: https://kphahn.shinyapps.io/dupapp/
+when: 1544366721.15893
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: dup_stm_15.RData|fetch.RData|jhs_pubmed.Rmd|julia_stm.Rmd|mesh.Rmd|preprocess.Rmd|README.md|stm.Rmd|figures/Bildschirmfoto 2018-11-16 um 08.57.41.png|figures/Untitled.scap
