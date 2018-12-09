@@ -14,7 +14,8 @@ library(topicmodels)
 
 ### Load predefines model(lda) from file
 
-        load("dup_lda_48.RData")  ### results in abstract_lda
+        load("dup_stm_18.RData") ### results in abstract_lda
+        load("abstr_sparse.RData")
         abstracts <- read.csv("abstracts.csv")
         first_author <- read.csv("first_author.csv")
 ### tidy it
@@ -32,7 +33,7 @@ library(topicmodels)
         #Extract gamma , arrange by topic and gamma and extract top 10 gamma for each topic 
         
        
-        lda_gamma_topic <- tidy(abstr_lda,matrix="gamma") %>% arrange(topic,desc(gamma)) %>% group_by(topic) %>% top_n(50,gamma)
+        lda_gamma_topic <- tidy(abstr_lda,matrix="gamma",document_names = rownames(abstr_sparse)) %>% arrange(topic,desc(gamma)) %>% group_by(topic) %>% top_n(50,gamma)
         lda_gamma_topic$document <- as.integer(lda_gamma_topic$document)  # change for joining
       
         ## join with pm_data to reveal title etc.
