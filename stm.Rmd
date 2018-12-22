@@ -10,11 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+system.time({
 plan(multiprocess)
 
-many_models <- data_frame(K = c(20,30,40,50,60,70)) %>%
+many_models <- data_frame(K = c(20,30,40,50,60,70,80,90,100)) %>%
   mutate(topic_model = future_map(K, ~stm(abstr_sparse, K = .,
                                           verbose = FALSE)))
+})
 ```
 
 ## evaluate

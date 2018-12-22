@@ -1,0 +1,15 @@
+---
+title: "Bench"
+author: "Peter Hahn"
+date: "22 12 2018"
+output: html_document
+---
+
+Imac 
+User      System verstrichen 
+     44.253       6.084    1708.251 
+     
+     multiprocess
+     
+      User      System verstrichen 
+   1995.556     637.830    1486.416 
