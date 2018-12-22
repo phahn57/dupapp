@@ -20,6 +20,8 @@ library(widyr)
 library(topicmodels)
 library(furrr)
 library(lda)
+library(reshape2)
+library(stm)
 ```
 
 ## routine for loading new query use saved * csv instead 
@@ -45,10 +47,10 @@ library(lda)
         #abstracts$year_cut <- cut(abstracts$year, c(1960, 1970, 1980, 1990, 2000,2010,2018),labels=c("60-69","70-79","80-89","90-99","00-09","10-18"), include.lowest=TRUE)
 
         ## remove plural words
-       pm_data <-abstracts  %>% mutate(abstract=str_replace_all(abstract,"options","option")) 
+       pm_data <-abstracts  %>% mutate(abstract=str_replace_all(abstract,"options","option")) %>% mutate(abstract=str_replace_all(abstract,"nodules","nodule")) %>% mutate(abstract=str_replace_all(abstract,"joints","joint")) 
 # list of words to remove in token
         del_word <-  tibble(word=c("dupuytren","NA","patient","disease","treatment","study","result","hand","disease",
-                                "contracture","patients","dupuytren's","clinical","results","report","included","month","treated","found","increased","compared","95","ci","10","20","30","statistically","lt","studies","underwent","diagnosis","12","15","50","reported","de","quot","des","bev","major","dd"))
+                                "contracture","patients","dupuytren's","clinical","results","report","included","month","treated","found","increased","compared","95","ci","10","20","30","statistically","lt","studies","underwent","diagnosis","12","15","50","reported","de","quot","des","bev","major","dd","ii","iii"))
  
         ### build data frame with first authors
         MedList = mapply(cbind, "ID"=ArticleId(fetch),Author(fetch),SIMPLIFY = FALSE)
@@ -77,11 +79,11 @@ library(lda)
 
 ## build document term matrix for further analysis two ways
 ```{r}
-        abstr_dtm <- word_counts %>% 
-        cast_dtm(DOI,word,n)
+        #abstr_dtm <- word_counts %>% 
+        #cast_dtm(DOI,word,n)
 
-        # abstr_sparse <- word_counts %>% 
-        #         cast_sparse(DOI,word,n)
+         abstr_sparse <- word_counts %>% 
+                 cast_sparse(DOI,word,n)
 ```
 
 ### use lda_tuning
@@ -107,18 +109,20 @@ FindTopicsNumber_plot(tunes)
 
 
 
-## final model with k = 48 , fits better in rows on screen :-)
+## final model with ??
 
 ```{r}
-topic_model <- stm(abstr_sparse, K = 48, 
+abstr_lda <- stm(abstr_sparse, K = 18, 
                    verbose = FALSE, init.type = "Spectral")
-
-
 ```
  
 ## alternative with LD
-```{r}
-        abstr_lda <- LDA(abstr_dtm,k=48,control=list(seed=1234))
+```{r eval= FALSE}
+        abstr_lda <- LDA(abstr_dtm,k=15,control=list(seed=1234))
 ```
 
+### save new abstr_lda
+```{r}
+        save(abstr_lda,file="dup_stm_18.RData")
+```
 
